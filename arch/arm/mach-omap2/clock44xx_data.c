@@ -1562,7 +1562,9 @@ static struct clk emif1_fck = {
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= OMAP4430_CM_MEMIF_EMIF_1_CLKCTRL,
 	.enable_bit	= OMAP4430_MODULEMODE_HWCTRL,
+#ifdef CONFIG_FB_OMAP_BOOTLOADER_INIT
 	.flags		= ENABLE_ON_INIT,
+#endif
 	.clkdm_name	= "l3_emif_clkdm",
 	.parent		= &ddrphy_ck,
 	.recalc		= &followparent_recalc,
@@ -1573,7 +1575,9 @@ static struct clk emif2_fck = {
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= OMAP4430_CM_MEMIF_EMIF_2_CLKCTRL,
 	.enable_bit	= OMAP4430_MODULEMODE_HWCTRL,
+#ifdef CONFIG_FB_OMAP_BOOTLOADER_INIT
 	.flags		= ENABLE_ON_INIT,
+#endif
 	.clkdm_name	= "l3_emif_clkdm",
 	.parent		= &ddrphy_ck,
 	.recalc		= &followparent_recalc,
