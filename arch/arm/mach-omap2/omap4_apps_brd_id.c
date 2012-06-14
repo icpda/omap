@@ -53,6 +53,10 @@ __init int omap_init_board_version(int forced_rev)
 		board_revision = forced_rev;
 	else {
 		switch (system_rev) {
+		case OMAP4_PANDA:
+			board_revision = OMAP4_PANDA;
+			board_id = OMAP4_PANDA_ID;
+			break;
 		case OMAP4_TABLET_1_0:
 			board_revision = OMAP4_TABLET_1_0;
 			board_id = OMAP4_TABLET_1_0_ID;
