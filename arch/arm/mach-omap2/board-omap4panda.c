@@ -178,14 +178,6 @@ static struct omap_musb_board_data musb_board_data = {
 	.power			= 100,
 };
 
-static struct twl4030_usb_data omap4_usbphy_data = {
-	.phy_init	= omap4430_phy_init,
-	.phy_exit	= omap4430_phy_exit,
-	.phy_power	= omap4430_phy_power,
-	.phy_set_clock	= omap4430_phy_set_clk,
-	.phy_suspend	= omap4430_phy_suspend,
-};
-
 static struct omap2_hsmmc_info mmc[] = {
 	{
 		.mmc		= 1,
@@ -203,13 +195,6 @@ static struct omap2_hsmmc_info mmc[] = {
 		.nonremovable	= true,
 	},
 	{}	/* Terminator */
-};
-
-static struct regulator_consumer_supply omap4_panda_vmmc_supply[] = {
-	{
-		.supply = "vmmc",
-		.dev_name = "omap_hsmmc.0",
-	},
 };
 
 static struct regulator_consumer_supply omap4_panda_vmmc5_supply = {
@@ -297,168 +282,12 @@ static int __init omap4_twl6030_hsmmc_init(struct omap2_hsmmc_info *controllers)
 	return 0;
 }
 
-static struct regulator_consumer_supply sdp4430_vaux2_supply[] = {
-	REGULATOR_SUPPLY("av-switch", "soc-audio"),
-};
-
-static struct regulator_init_data omap4_panda_vaux2 = {
-	.constraints = {
-		.min_uV			= 1200000,
-		.max_uV			= 2800000,
-		.apply_uV		= true,
-		.valid_modes_mask	= REGULATOR_MODE_NORMAL
-					| REGULATOR_MODE_STANDBY,
-		.valid_ops_mask	 = REGULATOR_CHANGE_VOLTAGE
-					| REGULATOR_CHANGE_MODE
-					| REGULATOR_CHANGE_STATUS,
-	},
-	.num_consumer_supplies	= 1,
-	.consumer_supplies	= sdp4430_vaux2_supply,
-};
-
-static struct regulator_init_data omap4_panda_vaux3 = {
-	.constraints = {
-		.min_uV			= 1000000,
-		.max_uV			= 3000000,
-		.apply_uV		= true,
-		.valid_modes_mask	= REGULATOR_MODE_NORMAL
-					| REGULATOR_MODE_STANDBY,
-		.valid_ops_mask	 = REGULATOR_CHANGE_VOLTAGE
-					| REGULATOR_CHANGE_MODE
-					| REGULATOR_CHANGE_STATUS,
-	},
-};
-
-/* VMMC1 for MMC1 card */
-static struct regulator_init_data omap4_panda_vmmc = {
-	.constraints = {
-		.min_uV			= 1200000,
-		.max_uV			= 3000000,
-		.apply_uV		= true,
-		.valid_modes_mask	= REGULATOR_MODE_NORMAL
-					| REGULATOR_MODE_STANDBY,
-		.valid_ops_mask	 = REGULATOR_CHANGE_VOLTAGE
-					| REGULATOR_CHANGE_MODE
-					| REGULATOR_CHANGE_STATUS,
-	},
-	.num_consumer_supplies  = 1,
-	.consumer_supplies      = omap4_panda_vmmc_supply,
-};
-
-static struct regulator_init_data omap4_panda_vpp = {
-	.constraints = {
-		.min_uV			= 1800000,
-		.max_uV			= 2500000,
-		.apply_uV		= true,
-		.valid_modes_mask	= REGULATOR_MODE_NORMAL
-					| REGULATOR_MODE_STANDBY,
-		.valid_ops_mask	 = REGULATOR_CHANGE_VOLTAGE
-					| REGULATOR_CHANGE_MODE
-					| REGULATOR_CHANGE_STATUS,
-	},
-};
-
-static struct regulator_init_data omap4_panda_vana = {
-	.constraints = {
-		.min_uV			= 2100000,
-		.max_uV			= 2100000,
-		.valid_modes_mask	= REGULATOR_MODE_NORMAL
-					| REGULATOR_MODE_STANDBY,
-		.valid_ops_mask	 = REGULATOR_CHANGE_MODE
-					| REGULATOR_CHANGE_STATUS,
-	},
-};
-
-static struct regulator_init_data omap4_panda_vcxio = {
-	.constraints = {
-		.min_uV			= 1800000,
-		.max_uV			= 1800000,
-		.valid_modes_mask	= REGULATOR_MODE_NORMAL
-					| REGULATOR_MODE_STANDBY,
-		.valid_ops_mask	 = REGULATOR_CHANGE_MODE
-					| REGULATOR_CHANGE_STATUS,
-	},
-};
-
-static struct regulator_consumer_supply panda_vdac_supply[] = {
-	{
-		.supply = "hdmi_vref",
-	},
-};
-
-static struct regulator_init_data omap4_panda_vdac = {
-	.constraints = {
-		.min_uV			= 1800000,
-		.max_uV			= 1800000,
-		.valid_modes_mask	= REGULATOR_MODE_NORMAL
-					| REGULATOR_MODE_STANDBY,
-		.valid_ops_mask	 = REGULATOR_CHANGE_MODE
-					| REGULATOR_CHANGE_STATUS,
-	},
-	.num_consumer_supplies  = ARRAY_SIZE(panda_vdac_supply),
-	.consumer_supplies      = panda_vdac_supply,
-};
-
-static struct regulator_init_data omap4_panda_vusb = {
-	.constraints = {
-		.min_uV			= 3300000,
-		.max_uV			= 3300000,
-		.apply_uV		= true,
-		.valid_modes_mask	= REGULATOR_MODE_NORMAL
-					| REGULATOR_MODE_STANDBY,
-		.valid_ops_mask	 =	REGULATOR_CHANGE_MODE
-					| REGULATOR_CHANGE_STATUS,
-	},
-};
-
-static struct regulator_init_data omap4_panda_clk32kg = {
-	.constraints = {
-		.valid_ops_mask		= REGULATOR_CHANGE_STATUS,
-		.always_on		= true,
-	},
-};
-
 static void omap4_audio_conf(void)
 {
 	/* twl6040 naudint */
 	omap_mux_init_signal("sys_nirq2.sys_nirq2", \
 		OMAP_PIN_INPUT_PULLUP);
 }
-
-static struct twl4030_codec_audio_data twl6040_audio = {
-	/* single-step ramp for headset and handsfree */
-	.hs_left_step	= 0x0f,
-	.hs_right_step	= 0x0f,
-	.hf_left_step	= 0x1d,
-	.hf_right_step	= 0x1d,
-};
-
-static struct twl4030_codec_data twl6040_codec = {
-	.audio		= &twl6040_audio,
-	.audpwron_gpio	= 127,
-	.naudint_irq	= OMAP44XX_IRQ_SYS_2N,
-	.irq_base	= TWL6040_CODEC_IRQ_BASE,
-};
-
-static struct twl4030_platform_data omap4_panda_twldata = {
-	.irq_base	= TWL6030_IRQ_BASE,
-	.irq_end	= TWL6030_IRQ_END,
-
-	/* Regulators */
-	.vmmc		= &omap4_panda_vmmc,
-	.vpp		= &omap4_panda_vpp,
-	.vana		= &omap4_panda_vana,
-	.vcxio		= &omap4_panda_vcxio,
-	.vdac		= &omap4_panda_vdac,
-	.vusb		= &omap4_panda_vusb,
-	.vaux2		= &omap4_panda_vaux2,
-	.vaux3		= &omap4_panda_vaux3,
-	.clk32kg	= &omap4_panda_clk32kg,
-	.usb		= &omap4_usbphy_data,
-
-	/* children */
-	.codec		= &twl6040_codec,
-};
 
 /*
  * Display monitor features are burnt in their EEPROM as EDID data. The EEPROM
@@ -507,7 +336,7 @@ static int __init omap4_panda_i2c_init(void)
 	omap_register_i2c_bus_board_data(4, &panda_i2c_4_bus_pdata);
 
 
-	omap4_pmic_init("twl6030", &omap4_panda_twldata);
+	omap4_power_init();
 	omap_register_i2c_bus(2, 400, NULL, 0);
 	/*
 	 * Bus 3 is attached to the DVI port where devices like the pico DLP
@@ -594,19 +423,14 @@ static struct omap_board_mux board_mux[] __initdata = {
 	OMAP4_MUX(DPM_EMU19, OMAP_PIN_OUTPUT | OMAP_MUX_MODE5),
 	{ .reg_offset = OMAP_MUX_TERMINATOR },
 };
-
-static inline void __init board_serial_init(void)
-{
-	omap_serial_init();
-}
 #else
 #define board_mux	NULL
+#endif
 
 static inline void __init board_serial_init(void)
 {
 	omap_serial_init();
 }
-#endif
 
 /* Display DVI */
 #define PANDA_DVI_TFP410_POWER_DOWN_GPIO	0
@@ -765,11 +589,11 @@ static void __init omap4_panda_init(void)
 	int status;
 	int package = OMAP_PACKAGE_CBS;
 
-	omap_emif_setup_device_details(&emif_devices, &emif_devices);
-
 	if (omap_rev() == OMAP4430_REV_ES1_0)
 		package = OMAP_PACKAGE_CBL;
 	omap4_mux_init(board_mux, NULL, package);
+
+	omap_emif_setup_device_details(&emif_devices, &emif_devices);
 
 	omap_init_board_version(OMAP4_PANDA);
 	omap4_create_board_props();
