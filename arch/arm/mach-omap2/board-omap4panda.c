@@ -31,6 +31,8 @@
 #include <linux/regulator/machine.h>
 #include <linux/regulator/fixed.h>
 #include <linux/wl12xx.h>
+#include <linux/skbuff.h>
+#include <linux/ti_wilink_st.h>
 #include <linux/memblock.h>
 
 #include <mach/hardware.h>
@@ -49,6 +51,7 @@
 #include <plat/usb.h>
 #include <plat/mmc.h>
 #include <plat/omap_apps_brd_id.h>
+#include <plat/omap-serial.h>
 #include <plat/remoteproc.h>
 #include <plat/vram.h>
 #include <video/omap-panel-generic-dpi.h>
@@ -67,21 +70,89 @@
 
 #define GPIO_HUB_POWER		1
 #define GPIO_HUB_NRESET		62
+
+#define WILINK_UART_DEV_NAME	"/dev/ttyO1"
 #define GPIO_WIFI_PMENA		43
 #define GPIO_WIFI_IRQ		53
+#define GPIO_BT_PMENA		46
+
 #define HDMI_GPIO_CT_CP_HPD     60
 #define HDMI_GPIO_HPD 63 /* Hot plug pin for HDMI */
 #define HDMI_GPIO_LS_OE 41 /* Level shifter for HDMI */
 #define TPS62361_GPIO   7 /* VCORE1 power control */
 
-/* wl127x BT, FM, GPS connectivity chip */
-static int wl1271_gpios[] = {46, -1, -1};
+/* TODO: handle suspend/resume here.
+ * Upon every suspend, make sure the wilink chip is
+ * capable enough to wake-up the OMAP host.
+ */
+static int plat_wlink_kim_suspend(struct platform_device *pdev, pm_message_t
+		state)
+{
+	return 0;
+}
+
+static int plat_wlink_kim_resume(struct platform_device *pdev)
+{
+	return 0;
+}
+
+static bool uart_req;
+static struct wake_lock st_wk_lock;
+/* Call the uart disable of serial driver */
+static int plat_uart_disable(void)
+{
+	int port_id = 0;
+	int err = 0;
+	if (uart_req) {
+		sscanf(WILINK_UART_DEV_NAME, "/dev/ttyO%d", &port_id);
+		err = omap_serial_ext_uart_disable(port_id);
+		if (!err)
+			uart_req = false;
+	}
+	wake_unlock(&st_wk_lock);
+	return err;
+}
+
+/* Call the uart enable of serial driver */
+static int plat_uart_enable(void)
+{
+	int port_id = 0;
+	int err = 0;
+	if (!uart_req) {
+		sscanf(WILINK_UART_DEV_NAME, "/dev/ttyO%d", &port_id);
+		err = omap_serial_ext_uart_enable(port_id);
+		if (!err)
+			uart_req = true;
+	}
+	wake_lock(&st_wk_lock);
+	return err;
+}
+
+/* wl127x BT, FM connectivity chip */
+static struct ti_st_plat_data wilink_pdata = {
+	.nshutdown_gpio = GPIO_BT_PMENA,
+	.dev_name = WILINK_UART_DEV_NAME,
+	.flow_cntrl = 1,
+	.baud_rate = 3686400,
+	.suspend = plat_wlink_kim_suspend,
+	.resume = plat_wlink_kim_resume,
+	.chip_asleep = plat_uart_disable,
+	.chip_awake  = plat_uart_enable,
+	.chip_enable = plat_uart_enable,
+	.chip_disable = plat_uart_disable,
+};
+
 static struct platform_device wl1271_device = {
 	.name	= "kim",
 	.id	= -1,
 	.dev	= {
-		.platform_data	= &wl1271_gpios,
+		.platform_data	= &wilink_pdata,
 	},
+};
+
+static struct platform_device btwilink_device = {
+	.name = "btwilink",
+	.id = -1,
 };
 
 static struct gpio_led gpio_leds[] = {
@@ -113,6 +184,7 @@ static struct platform_device leds_gpio = {
 static struct platform_device *panda_devices[] __initdata = {
 	&leds_gpio,
 	&wl1271_device,
+	&btwilink_device,
 };
 
 static void __init omap4_panda_init_early(void)
@@ -604,10 +676,11 @@ static void __init omap4_panda_init(void)
 	omap4_panda_i2c_init();
 	omap4_register_ion();
 	omap4_audio_conf();
-	platform_add_devices(panda_devices, ARRAY_SIZE(panda_devices));
 	platform_device_register(&omap_vwlan_device);
 	board_serial_init();
 	omap4_twl6030_hsmmc_init(mmc);
+	platform_add_devices(panda_devices, ARRAY_SIZE(panda_devices));
+	wake_lock_init(&st_wk_lock, WAKE_LOCK_SUSPEND, "st_wake_lock");
 	omap4_ehci_init();
 	usb_musb_init(&musb_board_data);
 
