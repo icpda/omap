@@ -300,12 +300,6 @@ static struct platform_device omap_vwlan_device = {
 	},
 };
 
-struct wl12xx_platform_data omap_panda_wlan_data  __initdata = {
-	.irq = OMAP_GPIO_IRQ(GPIO_WIFI_IRQ),
-	/* PANDA ref clock is 38.4 MHz */
-	.board_ref_clock = 2,
-};
-
 static int omap4_twl6030_hsmmc_late_init(struct device *dev)
 {
 	int ret = 0;
@@ -629,6 +623,39 @@ static __initdata struct emif_device_details emif_devices = {
 	.cs1_device = &lpddr2_elpida_2G_S4_dev
 };
 
+static void omap4_panda_wifi_mux_init(void)
+{
+	omap_mux_init_gpio(GPIO_WIFI_IRQ, OMAP_PIN_INPUT |
+				OMAP_PIN_OFF_WAKEUPENABLE);
+	omap_mux_init_gpio(GPIO_WIFI_PMENA, OMAP_PIN_OUTPUT);
+
+	omap_mux_init_signal("sdmmc5_cmd.sdmmc5_cmd",
+				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
+	omap_mux_init_signal("sdmmc5_clk.sdmmc5_clk",
+				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
+	omap_mux_init_signal("sdmmc5_dat0.sdmmc5_dat0",
+				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
+	omap_mux_init_signal("sdmmc5_dat1.sdmmc5_dat1",
+				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
+	omap_mux_init_signal("sdmmc5_dat2.sdmmc5_dat2",
+				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
+	omap_mux_init_signal("sdmmc5_dat3.sdmmc5_dat3",
+				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
+}
+
+static struct wl12xx_platform_data omap4_panda_wlan_data __initdata = {
+	.irq = OMAP_GPIO_IRQ(GPIO_WIFI_IRQ),
+	.board_ref_clock = WL12XX_REFCLOCK_38,
+	.board_tcxo_clock = WL12XX_TCXOCLOCK_38_4,
+};
+
+static void omap4_panda_wifi_init(void) {
+	omap4_panda_wifi_mux_init();
+	if (wl12xx_set_platform_data(&omap4_panda_wlan_data))
+		pr_err("Error setting wl12xx data\n");
+	platform_device_register(&omap_vwlan_device);
+}
+
 void omap4_panda_display_init(void)
 {
 	int r;
@@ -670,14 +697,11 @@ static void __init omap4_panda_init(void)
 	omap_init_board_version(OMAP4_PANDA);
 	omap4_create_board_props();
 
-	if (wl12xx_set_platform_data(&omap_panda_wlan_data))
-		pr_err("error setting wl12xx data\n");
-
 	omap4_panda_i2c_init();
 	omap4_register_ion();
 	omap4_audio_conf();
-	platform_device_register(&omap_vwlan_device);
 	board_serial_init();
+	omap4_panda_wifi_init();
 	omap4_twl6030_hsmmc_init(mmc);
 	platform_add_devices(panda_devices, ARRAY_SIZE(panda_devices));
 	wake_lock_init(&st_wk_lock, WAKE_LOCK_SUSPEND, "st_wake_lock");
