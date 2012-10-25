@@ -18,5 +18,6 @@
 #define _MACH_OMAP_BOARD_PANDA_H
 
 void omap4_create_board_props(void);
+void omap4_power_init(void);
 
 #endif
