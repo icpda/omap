@@ -47,7 +47,7 @@
 #include <asm/mach/map.h>
 #include <video/omapdss.h>
 
-#include <plat/board.h>
+#include <plat/android-display.h>
 #include <plat/common.h>
 #include <plat/usb.h>
 #include <plat/mmc.h>
@@ -656,19 +656,6 @@ static void omap4_panda_wifi_init(void) {
 	platform_device_register(&omap_vwlan_device);
 }
 
-void omap4_panda_display_init(void)
-{
-	int r;
-
-	r = omap4_panda_dvi_init();
-	if (r)
-		pr_err("error initializing panda DVI\n");
-
-	omap4_panda_hdmi_mux_init();
-	omap_display_init(&omap4_panda_dss_data);
-}
-
-
 #define PANDA_FB_RAM_SIZE                SZ_16M /* 1920×1080*4 * 2 */
 static struct omapfb_platform_data panda_fb_pdata = {
 	.mem_desc = {
@@ -681,6 +668,19 @@ static struct omapfb_platform_data panda_fb_pdata = {
 	},
 };
 
+void omap4_panda_display_init(void)
+{
+	int r;
+
+	r = omap4_panda_dvi_init();
+	if (r)
+		pr_err("error initializing panda DVI\n");
+
+	omap4_panda_hdmi_mux_init();
+	omapfb_set_platform_data(&panda_fb_pdata);
+	omap_display_init(&omap4_panda_dss_data);
+}
+
 extern void __init omap4_panda_android_init(void);
 
 static void __init omap4_panda_init(void)
@@ -688,11 +688,11 @@ static void __init omap4_panda_init(void)
 	int status;
 	int package = OMAP_PACKAGE_CBS;
 
-	omap_emif_setup_device_details(&emif_devices, &emif_devices);
-
 	if (omap_rev() == OMAP4430_REV_ES1_0)
 		package = OMAP_PACKAGE_CBL;
 	omap4_mux_init(board_mux, NULL, package);
+
+	omap_emif_setup_device_details(&emif_devices, &emif_devices);
 
 	omap_init_board_version(OMAP4_PANDA);
 	omap4_create_board_props();
@@ -709,8 +709,6 @@ static void __init omap4_panda_init(void)
 	usb_musb_init(&musb_board_data);
 
 	omap_dmm_init();
-	omap_vram_set_sdram_vram(PANDA_FB_RAM_SIZE, 0);
-	omapfb_set_platform_data(&panda_fb_pdata);
 	omap4_panda_display_init();
 
 	if (cpu_is_omap446x()) {
@@ -740,7 +738,18 @@ static void __init omap4_panda_reserve(void)
 	omap_init_ram_size();
 
 #ifdef CONFIG_ION_OMAP
+	omap_android_display_setup(&omap4_panda_dss_data,
+				   NULL,
+				   NULL,
+				   &panda_fb_pdata,
+				   get_omap_ion_platform_data());
 	omap_ion_init();
+#else
+	omap_android_display_setup(&sdp4430_dss_data,
+				   NULL,
+				   NULL,
+				   &panda_fb_pdata,
+				   NULL);
 #endif
 
 	omap_ram_console_init(OMAP_RAM_CONSOLE_START_DEFAULT,
