@@ -487,6 +487,26 @@ static struct regulator_init_data tuna_vaux1 = {
 	},
 };
 
+static struct regulator_consumer_supply tuna_vaux3_supplies[] = {
+	{
+		.supply = "vlcd",
+	},
+};
+
+static struct regulator_init_data tuna_vaux3 = {
+	.constraints = {
+		.min_uV			= 3100000,
+		.max_uV			= 3100000,
+		.valid_modes_mask	= REGULATOR_MODE_NORMAL
+					| REGULATOR_MODE_STANDBY,
+		.valid_ops_mask		= REGULATOR_CHANGE_VOLTAGE
+					| REGULATOR_CHANGE_MODE
+					| REGULATOR_CHANGE_STATUS,
+	},
+	.num_consumer_supplies  = ARRAY_SIZE(tuna_vaux3_supplies),
+	.consumer_supplies      = tuna_vaux3_supplies,
+};
+
 static struct regulator_consumer_supply tuna_vmmc_supplies[] = {
 	REGULATOR_SUPPLY("vmmc", "omap_hsmmc.0"),
 	REGULATOR_SUPPLY("vmmc", "omap_hsmmc.1"),
@@ -506,7 +526,6 @@ static struct regulator_init_data tuna_vmmc = {
 			.disabled	= true,
 		},
 		.initial_state		= PM_SUSPEND_MEM,
-
 	},
 	.num_consumer_supplies  = ARRAY_SIZE(tuna_vmmc_supplies),
 	.consumer_supplies      = tuna_vmmc_supplies,
@@ -538,6 +557,7 @@ static struct twl4030_platform_data tuna_twldata = {
 	/* Regulators */
 	.vmmc		= &tuna_vmmc,
 	.vaux1		= &tuna_vaux1,
+	.vaux3		= &tuna_vaux3,
 	.vusim		= &tuna_vusim,
 };
 
@@ -569,7 +589,6 @@ static int __init tuna_i2c_init(void)
 			TWL_COMMON_REGULATOR_VDAC |
 			TWL_COMMON_REGULATOR_VUSB |
 			TWL_COMMON_REGULATOR_VAUX2 |
-			TWL_COMMON_REGULATOR_VAUX3 |
 			TWL_COMMON_REGULATOR_CLK32KG |
 			TWL_COMMON_REGULATOR_CLK32KAUDIO |
 			TWL_COMMON_REGULATOR_V1V8 |
