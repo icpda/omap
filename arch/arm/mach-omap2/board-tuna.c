@@ -418,8 +418,6 @@ static struct twl6040_platform_data twl6040_data = {
 	.codec		= &twl6040_codec,
 };
 
-static struct twl4030_platform_data tuna_twldata;
-
 static void tuna_audio_init(void)
 {
 	unsigned int aud_pwron;
@@ -476,6 +474,36 @@ static struct omap_i2c_bus_board_data __initdata omap4_i2c_2_bus_pdata;
 static struct omap_i2c_bus_board_data __initdata omap4_i2c_3_bus_pdata;
 static struct omap_i2c_bus_board_data __initdata omap4_i2c_4_bus_pdata;
 
+static struct regulator_consumer_supply tuna_vmmc_supplies[] = {
+	REGULATOR_SUPPLY("vmmc", "omap_hsmmc.0"),
+	REGULATOR_SUPPLY("vmmc", "omap_hsmmc.1"),
+};
+
+static struct regulator_init_data tuna_vmmc = {
+	.constraints = {
+		.min_uV			= 1800000,
+		.max_uV			= 1800000,
+		.apply_uV		= true,
+		.valid_modes_mask	= REGULATOR_MODE_NORMAL
+					| REGULATOR_MODE_STANDBY,
+		.valid_ops_mask		= REGULATOR_CHANGE_VOLTAGE
+					| REGULATOR_CHANGE_MODE
+					| REGULATOR_CHANGE_STATUS,
+		.state_mem = {
+			.disabled	= true,
+		},
+		.initial_state		= PM_SUSPEND_MEM,
+
+	},
+	.num_consumer_supplies  = ARRAY_SIZE(tuna_vmmc_supplies),
+	.consumer_supplies      = tuna_vmmc_supplies,
+};
+
+static struct twl4030_platform_data tuna_twldata = {
+	/* Regulators */
+	.vmmc		= &tuna_vmmc,
+};
+
 static int __init tuna_i2c_init(void)
 {
 	u32 r;
@@ -498,7 +526,6 @@ static int __init tuna_i2c_init(void)
 	omap4_pmic_get_config(&tuna_twldata, TWL_COMMON_PDATA_USB |
 			TWL_COMMON_PDATA_MADC |
 			TWL_COMMON_PDATA_THERMAL,
-			TWL_COMMON_REGULATOR_VMMC |
 			TWL_COMMON_REGULATOR_VPP |
 			TWL_COMMON_REGULATOR_VUSIM |
 			TWL_COMMON_REGULATOR_VANA |
