@@ -474,6 +474,19 @@ static struct omap_i2c_bus_board_data __initdata omap4_i2c_2_bus_pdata;
 static struct omap_i2c_bus_board_data __initdata omap4_i2c_3_bus_pdata;
 static struct omap_i2c_bus_board_data __initdata omap4_i2c_4_bus_pdata;
 
+static struct regulator_init_data tuna_vaux1 = {
+	.constraints = {
+		.min_uV			= 3000000,
+		.max_uV			= 3000000,
+		.apply_uV		= true,
+		.valid_modes_mask	= REGULATOR_MODE_NORMAL
+					| REGULATOR_MODE_STANDBY,
+		.valid_ops_mask	 = REGULATOR_CHANGE_MODE
+					| REGULATOR_CHANGE_STATUS,
+		.always_on		= true,
+	},
+};
+
 static struct regulator_consumer_supply tuna_vmmc_supplies[] = {
 	REGULATOR_SUPPLY("vmmc", "omap_hsmmc.0"),
 	REGULATOR_SUPPLY("vmmc", "omap_hsmmc.1"),
@@ -524,6 +537,7 @@ static struct regulator_init_data tuna_vusim = {
 static struct twl4030_platform_data tuna_twldata = {
 	/* Regulators */
 	.vmmc		= &tuna_vmmc,
+	.vaux1		= &tuna_vaux1,
 	.vusim		= &tuna_vusim,
 };
 
