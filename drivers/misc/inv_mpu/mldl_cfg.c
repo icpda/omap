@@ -32,7 +32,8 @@
 
 #include "mldl_cfg.h"
 #include <linux/mpu.h>
-#  include "mpu3050.h"
+#include <linux/bug.h>
+#include "mpu3050.h"
 
 #include "mlsl.h"
 
