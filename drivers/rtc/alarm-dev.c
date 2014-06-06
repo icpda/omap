@@ -21,7 +21,7 @@
 #include <linux/platform_device.h>
 #include <linux/sched.h>
 #include <linux/spinlock.h>
-#include <linux/sysdev.h>
+#include <linux/module.h>
 #include <linux/uaccess.h>
 #include <linux/wakelock.h>
 
