@@ -28,6 +28,7 @@
 #include <linux/platform_data/fsa9480.h>
 #include <linux/regulator/consumer.h>
 #include <linux/usb/otg.h>
+#include <linux/usb/omap4_usb_phy.h>
 #include <linux/delay.h>
 #include <linux/sii9234.h>
 #include <linux/i2c/twl.h>
@@ -605,20 +606,15 @@ static int tuna_otg_set_vbus(struct usb_otg *otg, bool enabled)
 static int tuna_otg_phy_init(struct usb_phy *usb)
 {
 	if (usb->last_event == USB_EVENT_ID)
-		omap4430_phy_power(usb->dev, 1, 1);
+		omap4_usb_phy_power(usb->dev, 1);
 	else
-		omap4430_phy_power(usb->dev, 0, 1);
+		omap4_usb_phy_power(usb->dev, 1);
 	return 0;
 }
 
 static void tuna_otg_phy_shutdown(struct usb_phy *usb)
 {
-	omap4430_phy_power(usb->dev, 0, 0);
-}
-
-static int tuna_otg_set_suspend(struct usb_phy *usb, int suspend)
-{
-	return omap4430_phy_suspend(usb->dev, suspend);
+	omap4_usb_phy_power(usb->dev, 0);
 }
 
 static ssize_t tuna_otg_usb_sel_show(struct device *dev,
@@ -953,7 +949,6 @@ int __init omap4_tuna_connector_init(void)
 	tuna_otg->usb.label		= "tuna_otg_xceiv";
 	tuna_otg->usb.otg->set_host		= tuna_otg_set_host;
 	tuna_otg->usb.otg->set_peripheral	= tuna_otg_set_peripheral;
-	tuna_otg->usb.set_suspend	= tuna_otg_set_suspend;
 	tuna_otg->usb.otg->set_vbus		= tuna_otg_set_vbus;
 	tuna_otg->usb.init		= tuna_otg_phy_init;
 	tuna_otg->usb.shutdown		= tuna_otg_phy_shutdown;
@@ -963,9 +958,6 @@ int __init omap4_tuna_connector_init(void)
 	ret = usb_add_phy(&tuna_otg->usb, USB_PHY_TYPE_UNDEFINED);
 	if (ret)
 		pr_err("tuna_otg: cannot set transceiver (%d)\n", ret);
-
-	omap4430_phy_init(&tuna_otg->dev);
-	tuna_otg_set_suspend(&tuna_otg->usb, 0);
 
 	i2c_register_board_info(4, tuna_connector_i2c4_boardinfo,
 				ARRAY_SIZE(tuna_connector_i2c4_boardinfo));
