@@ -157,6 +157,12 @@ enum omap_display_caps {
 	OMAP_DSS_DISPLAY_CAP_TEAR_ELIM		= 1 << 1,
 };
 
+enum omap_dss_update_mode {
+	OMAP_DSS_UPDATE_DISABLED = 0,
+	OMAP_DSS_UPDATE_AUTO,
+	OMAP_DSS_UPDATE_MANUAL,
+};
+
 enum omap_dss_display_state {
 	OMAP_DSS_DISPLAY_DISABLED = 0,
 	OMAP_DSS_DISPLAY_ACTIVE,
