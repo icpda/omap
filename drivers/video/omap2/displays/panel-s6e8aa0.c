@@ -152,6 +152,7 @@ struct s6e8aa0_data {
 	unsigned long hw_guard_wait;	/* max guard time in jiffies */
 
 	atomic_t do_update;
+	int channel;
 	struct {
 		u16 x;
 		u16 y;
@@ -1557,6 +1558,7 @@ static int s6e8aa0_probe(struct omap_dss_device *dssdev)
 
 	dssdev->panel.config = OMAP_DSS_LCD_TFT;
 	dssdev->panel.timings = s6e8aa0_timings;
+	dssdev->panel.dsi_pix_fmt = OMAP_DSS_DSI_FMT_RGB888;
 
 	dssdev->ctrl.pixel_size = 24;
 	dssdev->panel.acbi = 0;
@@ -1617,6 +1619,18 @@ static int s6e8aa0_probe(struct omap_dss_device *dssdev)
 	s6->acl_average = s6->pdata->acl_average;
 	s6->elvss_cur_i = ~0;
 
+	ret = omap_dsi_request_vc(dssdev, &s6->channel);
+	if (ret) {
+		dev_err(&dssdev->dev, "failed to get virtual channel\n");
+		goto err_req_vc;
+	}
+
+	ret = omap_dsi_set_vc_id(dssdev, s6->channel, CMD_VC_CHANNEL);
+	if (ret) {
+		dev_err(&dssdev->dev, "failed to set VC_ID\n");
+		goto err_vc_id;
+	}
+
 	ret = sysfs_create_group(&s6->bldev->dev.kobj, &s6e8aa0_bl_attr_group);
 	if (ret < 0) {
 		dev_err(&dssdev->dev, "failed to add sysfs entries\n");
@@ -1629,6 +1643,9 @@ static int s6e8aa0_probe(struct omap_dss_device *dssdev)
 	dev_dbg(&dssdev->dev, "s6e8aa0_probe\n");
 	return ret;
 
+err_vc_id:
+	omap_dsi_release_vc(dssdev, s6->channel);
+err_req_vc:
 err_backlight_device_register:
 	mutex_destroy(&s6->lock);
 	gpio_free(s6->pdata->reset_gpio);
@@ -1698,11 +1715,13 @@ static int s6e8aa0_power_on(struct omap_dss_device *dssdev)
 		if(!dssdev->skip_init){
 			s6e8aa0_hw_reset(dssdev);
 
+			omapdss_dsi_vc_enable_hs(dssdev, s6->channel, false);
+
 			/* XXX */
 			msleep(100);
 			s6e8aa0_config(dssdev);
 
-			dsi_video_mode_enable(dssdev, 0x3E); /* DSI_DT_PXLSTREAM_24BPP_PACKED; */
+			dsi_enable_video_output(dssdev, s6->channel);
 		}
 
 		s6->enabled = 1;
@@ -1733,7 +1752,7 @@ static void s6e8aa0_power_off(struct omap_dss_device *dssdev)
 static int s6e8aa0_start(struct omap_dss_device *dssdev)
 {
 	int r = 0;
-	unsigned long pclk;
+	//unsigned long pclk;
 
 	dsi_bus_lock(dssdev);
 
@@ -1746,21 +1765,18 @@ static int s6e8aa0_start(struct omap_dss_device *dssdev)
 		dssdev->state = OMAP_DSS_DISPLAY_DISABLED;
 	} else {
 		dssdev->state = OMAP_DSS_DISPLAY_ACTIVE;
-		dssdev->manager->enable(dssdev->manager);
 	}
 
 	/* fixup pclk based on pll config */
-	pclk = dispc_pclk_rate(dssdev->channel);
+	/*pclk = dispc_pclk_rate(dssdev->channel);
 	if (pclk)
-		dssdev->panel.timings.pixel_clock = (pclk + 500) / 1000;
+		dssdev->panel.timings.pixel_clock = (pclk + 500) / 1000;*/
 
 	return r;
 }
 
 static void s6e8aa0_stop(struct omap_dss_device *dssdev)
 {
-	dssdev->manager->disable(dssdev->manager);
-
 	dsi_bus_lock(dssdev);
 
 	s6e8aa0_power_off(dssdev);
@@ -1824,12 +1840,8 @@ static int s6e8aa0_update(struct omap_dss_device *dssdev,
 		goto err;
 	}
 
-	r = omap_dsi_prepare_update(dssdev, &x, &y, &w, &h, true);
-	if (r)
-		goto err;
-
 	/* We use VC(0) for VideoPort Data and VC(1) for commands */
-	r = omap_dsi_update(dssdev, 0, x, y, w, h, s6e8aa0_framedone_cb, dssdev);
+	r = omap_dsi_update(dssdev, s6->channel, s6e8aa0_framedone_cb, dssdev);
 	if (r)
 		goto err;
 
@@ -1928,8 +1940,8 @@ static struct omap_dss_driver s6e8aa0_driver = {
 	.resume = s6e8aa0_resume,
 #endif
 
-	.set_update_mode = s6e8aa0_set_update_mode,
-	.get_update_mode = s6e8aa0_get_update_mode,
+	//.set_update_mode = s6e8aa0_set_update_mode,
+	//.get_update_mode = s6e8aa0_get_update_mode,
 
 	.update = s6e8aa0_update,
 	.sync = s6e8aa0_sync,
