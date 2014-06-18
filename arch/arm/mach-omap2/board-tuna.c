@@ -370,6 +370,8 @@ static int __init sec_common_init(void)
 static void __init tuna_init_early(void)
 {
 	omap4430_init_early();
+	if (cpu_is_omap446x())
+		omap_tps6236x_gpio_no_reset_wa(7, -1, 32);
 }
 
 static struct omap_musb_board_data musb_board_data = {
