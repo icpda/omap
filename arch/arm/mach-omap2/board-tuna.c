@@ -32,7 +32,6 @@
 #include <linux/regulator/fixed.h>
 #include <linux/wl12xx.h>
 #include <linux/reboot.h>
-#include <linux/memblock.h>
 #include <linux/sysfs.h>
 #include <linux/uaccess.h>
 #include <linux/proc_fs.h>
@@ -64,6 +63,7 @@
 //#include "mach/omap_fiq_debugger.h"
 
 #include <mach/id.h>
+#include "omap4_ion.h"
 
 #include "omap4-sar-layout.h"
 #include "mux.h"
@@ -73,7 +73,6 @@
 #include "common-board-devices.h"
 #include "board-tuna.h"
 #include "omap_ram_console.h"
-#include "omap4_ion.h"
 //#include "resetreason.h"
 
 struct class *sec_class;
@@ -367,13 +366,6 @@ static int __init sec_common_init(void)
 	return 0;
 }
 
-static void __init tuna_init_early(void)
-{
-	omap4430_init_early();
-	if (cpu_is_omap446x())
-		omap_tps6236x_gpio_no_reset_wa(7, -1, 32);
-}
-
 static struct omap_musb_board_data musb_board_data = {
 	.interface_type		= MUSB_INTERFACE_UTMI,
 #ifdef CONFIG_USB_MUSB_OTG
@@ -474,6 +466,12 @@ static struct omap_i2c_bus_board_data __initdata omap4_i2c_2_bus_pdata;
 static struct omap_i2c_bus_board_data __initdata omap4_i2c_3_bus_pdata;
 static struct omap_i2c_bus_board_data __initdata omap4_i2c_4_bus_pdata;
 
+static struct regulator_consumer_supply tuna_vaux3_supplies[] = {
+	{
+		.supply = "vlcd",
+	},
+};
+
 static struct regulator_init_data tuna_vaux1 = {
 	.constraints = {
 		.min_uV			= 3000000,
@@ -487,21 +485,20 @@ static struct regulator_init_data tuna_vaux1 = {
 	},
 };
 
-static struct regulator_consumer_supply tuna_vaux3_supplies[] = {
-	{
-		.supply = "vlcd",
-	},
-};
-
 static struct regulator_init_data tuna_vaux3 = {
 	.constraints = {
 		.min_uV			= 3100000,
 		.max_uV			= 3100000,
+		.apply_uV		= true,
 		.valid_modes_mask	= REGULATOR_MODE_NORMAL
 					| REGULATOR_MODE_STANDBY,
 		.valid_ops_mask		= REGULATOR_CHANGE_VOLTAGE
 					| REGULATOR_CHANGE_MODE
 					| REGULATOR_CHANGE_STATUS,
+		.state_mem = {
+			.disabled	= true,
+		},
+		.initial_state		= PM_SUSPEND_MEM,
 	},
 	.num_consumer_supplies  = ARRAY_SIZE(tuna_vaux3_supplies),
 	.consumer_supplies      = tuna_vaux3_supplies,
@@ -554,12 +551,34 @@ static struct regulator_init_data tuna_vusim = {
 	.consumer_supplies = tuna_vusim_supplies,
 };
 
+static struct regulator_consumer_supply tuna_vdac_supply[] = {
+	REGULATOR_SUPPLY("hdmi_vref", NULL),
+};
+
+static struct regulator_init_data tuna_vdac = {
+	.constraints = {
+		.min_uV			= 1800000,
+		.max_uV			= 1800000,
+		.valid_modes_mask	= REGULATOR_MODE_NORMAL
+					| REGULATOR_MODE_STANDBY,
+		.valid_ops_mask		= REGULATOR_CHANGE_MODE
+					| REGULATOR_CHANGE_STATUS,
+		.state_mem = {
+			.disabled	= true,
+		},
+		.initial_state		= PM_SUSPEND_MEM,
+	},
+	.num_consumer_supplies	= ARRAY_SIZE(tuna_vdac_supply),
+	.consumer_supplies	= tuna_vdac_supply,
+};
+
 static struct twl4030_platform_data tuna_twldata = {
 	/* Regulators */
-	.vmmc		= &tuna_vmmc,
 	.vaux1		= &tuna_vaux1,
 	.vaux3		= &tuna_vaux3,
+	.vmmc		= &tuna_vmmc,
 	.vusim		= &tuna_vusim,
+	.vdac		= &tuna_vdac,
 };
 
 static int __init tuna_i2c_init(void)
@@ -587,7 +606,6 @@ static int __init tuna_i2c_init(void)
 			TWL_COMMON_REGULATOR_VPP |
 			TWL_COMMON_REGULATOR_VANA |
 			TWL_COMMON_REGULATOR_VCXIO |
-			TWL_COMMON_REGULATOR_VDAC |
 			TWL_COMMON_REGULATOR_VUSB |
 			TWL_COMMON_REGULATOR_VAUX2 |
 			TWL_COMMON_REGULATOR_CLK32KG |
@@ -1164,7 +1182,7 @@ MACHINE_START(TUNA, "Tuna")
 	.atag_offset	= 0x100,
 	.reserve	= tuna_reserve,
 	.map_io		= omap4_map_io,
-	.init_early	= tuna_init_early,
+	.init_early	= omap4430_init_early,
 	.init_irq	= gic_init_irq,
 	.handle_irq	= gic_handle_irq,
 	.init_machine	= tuna_init,
