@@ -526,6 +526,7 @@ static struct regulator_init_data tuna_vmmc = {
 			.disabled	= true,
 		},
 		.initial_state		= PM_SUSPEND_MEM,
+
 	},
 	.num_consumer_supplies  = ARRAY_SIZE(tuna_vmmc_supplies),
 	.consumer_supplies      = tuna_vmmc_supplies,
