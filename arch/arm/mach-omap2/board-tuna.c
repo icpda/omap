@@ -1178,7 +1178,7 @@ static int __init tuna_print_last_turnon_sts(void)
 device_initcall(tuna_print_last_turnon_sts);
 
 MACHINE_START(TUNA, "Tuna")
-	/* Maintainer: Google, Inc */
+	/* Maintainer: Israel Cepeda */
 	.atag_offset	= 0x100,
 	.reserve	= tuna_reserve,
 	.map_io		= omap4_map_io,
