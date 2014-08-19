@@ -25,6 +25,7 @@
 #include <linux/init.h>
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
+#include <linux/mm.h>
 #include <linux/platform_data/fsa9480.h>
 #include <linux/regulator/consumer.h>
 #include <linux/usb/otg.h>
@@ -888,6 +889,7 @@ static struct i2c_board_info __initdata tuna_i2c5_boardinfo[] = {
 int __init omap4_tuna_connector_init(void)
 {
 	struct tuna_otg *tuna_otg = &tuna_otg_xceiv;
+	struct usb_otg *otg;
 	int ret;
 
 	if (omap4_tuna_get_revision() >= 3) {
@@ -945,13 +947,23 @@ int __init omap4_tuna_connector_init(void)
 
 	dev_set_drvdata(&tuna_otg->dev, tuna_otg);
 
+	otg = devm_kzalloc(&tuna_otg->dev, sizeof(struct usb_otg), GFP_KERNEL);
+	if (!otg) {
+		dev_err(&tuna_otg->dev, "unable to allocate memory for USB OTG\n");
+		return -ENOMEM;
+	}
+
+	tuna_otg->usb.otg = otg;
+
 	tuna_otg->usb.dev		= &tuna_otg->dev;
 	tuna_otg->usb.label		= "tuna_otg_xceiv";
-	tuna_otg->usb.otg->set_host		= tuna_otg_set_host;
-	tuna_otg->usb.otg->set_peripheral	= tuna_otg_set_peripheral;
-	tuna_otg->usb.otg->set_vbus		= tuna_otg_set_vbus;
 	tuna_otg->usb.init		= tuna_otg_phy_init;
 	tuna_otg->usb.shutdown		= tuna_otg_phy_shutdown;
+
+	otg->phy 			= &tuna_otg->usb;
+	otg->set_host		= tuna_otg_set_host;
+	otg->set_peripheral	= tuna_otg_set_peripheral;
+	otg->set_vbus		= tuna_otg_set_vbus;
 
 	ATOMIC_INIT_NOTIFIER_HEAD(&tuna_otg->usb.notifier);
 
