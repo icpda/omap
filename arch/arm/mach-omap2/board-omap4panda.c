@@ -29,6 +29,7 @@
 #include <linux/regulator/machine.h>
 #include <linux/regulator/fixed.h>
 #include <linux/wl12xx.h>
+#include <linux/omapfb.h>
 #include <linux/platform_data/omap-abe-twl6040.h>
 #include <linux/memblock.h>
 
@@ -40,12 +41,14 @@
 #include <video/omapdss.h>
 
 #include <plat/board.h>
+#include <plat/vram.h>
 #include "common.h"
 #include <plat/usb.h>
 #include <plat/mmc.h>
 #include <plat/drm.h>
 #include <plat/omap_apps_brd_id.h>
 #include <plat/remoteproc.h>
+#include <plat/sgx_omaplfb.h>
 #include <video/omap-panel-dvi.h>
 
 #include "hsmmc.h"
@@ -54,6 +57,8 @@
 #include "common-board-devices.h"
 #include "omap4_ion.h"
 #include "omap_ram_console.h"
+
+#define PANDA_FB_RAM_SIZE	SZ_16M /* 1920*1080*4 * 2 */
 
 #define GPIO_HUB_POWER		1
 #define GPIO_HUB_NRESET		62
@@ -437,6 +442,24 @@ static struct omap_board_mux board_mux[] __initdata = {
 #define board_mux	NULL
 #endif
 
+/* HACK: use 2 devices, as expected by DDK */
+static struct sgx_omaplfb_config omapfb_config_panda[] = {
+	{
+		.tiler2d_buffers = 2,
+		.swap_chain_length = 2,
+	},
+	{
+		.vram_buffers = 2,
+		.swap_chain_length = 2,
+	},
+};
+
+static struct omapfb_platform_data omap4_panda_fb_pdata = {
+	.mem_desc = {
+		.region_cnt = ARRAY_SIZE(omapfb_config_panda),
+	},
+};
+
 /* Display DVI */
 #define PANDA_DVI_TFP410_POWER_DOWN_GPIO	0
 
@@ -481,31 +504,20 @@ static int __init omap4_panda_dvi_init(void)
 	return r;
 }
 
-static struct gpio panda_hdmi_gpios[] = {
-	{ HDMI_GPIO_CT_CP_HPD, GPIOF_OUT_INIT_HIGH, "hdmi_gpio_ct_cp_hpd" },
-	{ HDMI_GPIO_LS_OE,	GPIOF_OUT_INIT_HIGH, "hdmi_gpio_ls_oe" },
-	{ HDMI_GPIO_HPD, GPIOF_DIR_IN, "hdmi_gpio_hpd" },
-};
-
 static int omap4_panda_panel_enable_hdmi(struct omap_dss_device *dssdev)
 {
-	int status;
-
-	status = gpio_request_array(panda_hdmi_gpios,
-				    ARRAY_SIZE(panda_hdmi_gpios));
-	if (status)
-		pr_err("Cannot request HDMI GPIOs\n");
-
-	return status;
+	return 0;
 }
 
 static void omap4_panda_panel_disable_hdmi(struct omap_dss_device *dssdev)
 {
-	gpio_free_array(panda_hdmi_gpios, ARRAY_SIZE(panda_hdmi_gpios));
+
 }
 
 static struct omap_dss_hdmi_data omap4_panda_hdmi_data = {
 	.hpd_gpio = HDMI_GPIO_HPD,
+	.ls_oe_gpio = HDMI_GPIO_LS_OE,
+	.ct_cp_hpd_gpio = HDMI_GPIO_CT_CP_HPD,
 };
 
 static struct omap_dss_device  omap4_panda_hdmi_device = {
@@ -537,6 +549,8 @@ static void __init omap4_panda_display_init(void)
 	if (r)
 		pr_err("error initializing panda DVI\n");
 
+	omapfb_set_platform_data(&omap4_panda_fb_pdata);
+	omap_vram_set_sdram_vram(PANDA_FB_RAM_SIZE, 0);
 	omap_display_init(&omap4_panda_dss_data);
 
 	/*
