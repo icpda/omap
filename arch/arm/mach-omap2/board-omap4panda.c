@@ -504,6 +504,26 @@ static int __init omap4_panda_dvi_init(void)
 	return r;
 }
 
+static void __init omap4_panda_hdmi_init(void)
+{
+	u32 reg;
+
+	omap_mux_init_signal("hdmi_hpd.hdmi_hpd",
+			OMAP_PIN_INPUT_PULLDOWN);
+	omap_mux_init_signal("hdmi_cec",
+			OMAP_PIN_INPUT_PULLUP);
+	omap_mux_init_signal("hdmi_ddc_scl",
+			OMAP_PIN_INPUT_PULLUP);
+	omap_mux_init_signal("hdmi_ddc_sda",
+			OMAP_PIN_INPUT_PULLUP);
+
+	/* strong pullup on DDC lines using unpublished register */
+	reg = omap4_ctrl_pad_readl(OMAP4_CTRL_MODULE_PAD_CORE_CONTROL_I2C_1);
+	reg |= OMAP4_HDMI_DDC_SDA_PULLUPRESX_MASK |
+		OMAP4_HDMI_DDC_SCL_PULLUPRESX_MASK;
+	omap4_ctrl_pad_writel(reg, OMAP4_CTRL_MODULE_PAD_CORE_CONTROL_I2C_1);
+}
+
 static int omap4_panda_panel_enable_hdmi(struct omap_dss_device *dssdev)
 {
 	return 0;
@@ -549,18 +569,11 @@ static void __init omap4_panda_display_init(void)
 	if (r)
 		pr_err("error initializing panda DVI\n");
 
+	omap4_panda_hdmi_init();
+
 	omapfb_set_platform_data(&omap4_panda_fb_pdata);
 	omap_vram_set_sdram_vram(PANDA_FB_RAM_SIZE, 0);
 	omap_display_init(&omap4_panda_dss_data);
-
-	/*
-	 * OMAP4460SDP/Blaze and OMAP4430 ES2.3 SDP/Blaze boards and
-	 * later have external pull up on the HDMI I2C lines
-	 */
-	if (cpu_is_omap446x() || omap_rev() > OMAP4430_REV_ES2_2)
-		omap_hdmi_init(OMAP_HDMI_SDA_SCL_EXTERNAL_PULLUP);
-	else
-		omap_hdmi_init(0);
 
 	omap_mux_init_gpio(HDMI_GPIO_LS_OE, OMAP_PIN_OUTPUT);
 	omap_mux_init_gpio(HDMI_GPIO_CT_CP_HPD, OMAP_PIN_OUTPUT);
