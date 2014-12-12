@@ -445,7 +445,7 @@ static struct omap_board_mux board_mux[] __initdata = {
 /* HACK: use 2 devices, as expected by DDK */
 static struct sgx_omaplfb_config omapfb_config_panda[] = {
 	{
-		.tiler2d_buffers = 2,
+		.vram_buffers = 2,
 		.swap_chain_length = 2,
 	},
 	{
@@ -551,14 +551,14 @@ static struct omap_dss_device  omap4_panda_hdmi_device = {
 };
 
 static struct omap_dss_device *omap4_panda_dss_devices[] = {
-	&omap4_panda_dvi_device,
+//	&omap4_panda_dvi_device,
 	&omap4_panda_hdmi_device,
 };
 
 static struct omap_dss_board_info omap4_panda_dss_data = {
 	.num_devices	= ARRAY_SIZE(omap4_panda_dss_devices),
 	.devices	= omap4_panda_dss_devices,
-	.default_device	= &omap4_panda_dvi_device,
+	.default_device	= &omap4_panda_hdmi_device,
 };
 
 static void __init omap4_panda_display_init(void)
@@ -621,8 +621,8 @@ static void __init omap4_panda_init(void)
 		pr_err("error setting wl12xx data: %d\n", ret);
 
 	omap4_panda_init_rev();
-	omap_create_board_props();
 	omap4_panda_i2c_init();
+	omap_create_board_props();
 	omap4_register_ion();
 	platform_add_devices(panda_devices, ARRAY_SIZE(panda_devices));
 	platform_device_register(&omap_vwlan_device);
